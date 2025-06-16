@@ -19,8 +19,13 @@ function(input, output, session) {
         })
       })
       
-      # 確保人口數為數值
-      data$population <- as.numeric(gsub(",", "", as.character(data$population)))
+      # 確保人口數為數值並處理NA
+      data$population <- suppressWarnings(as.numeric(gsub(",", "", as.character(data$population))))
+      # 使用線性插值填補NA值
+      if(any(is.na(data$population))) {
+        data <- data[order(data$date),]  # 確保按日期排序
+        data$population <- zoo::na.approx(data$population, na.rm = FALSE)
+      }
       data
     }, error = function(e) {
       NULL
@@ -41,8 +46,13 @@ function(input, output, session) {
         })
       })
       
-      # 確保房價為數值
-      data$price_per_sqm <- as.numeric(gsub(",", "", as.character(data$price_per_sqm)))
+      # 確保房價為數值並處理NA
+      data$price_per_sqm <- suppressWarnings(as.numeric(gsub(",", "", as.character(data$price_per_sqm))))
+      # 使用線性插值填補NA值
+      if(any(is.na(data$price_per_sqm))) {
+        data <- data[order(data$date),]  # 確保按日期排序
+        data$price_per_sqm <- zoo::na.approx(data$price_per_sqm, na.rm = FALSE)
+      }
       data
     }, error = function(e) {
       NULL
@@ -51,10 +61,24 @@ function(input, output, session) {
     # 如果任一資料集為空，返回NULL
     if (is.null(pop_data) || is.null(price_data)) return(NULL)
     
+    # 合併資料前先確保日期範圍一致
+    date_range <- range(c(pop_data$date, price_data$date), na.rm = TRUE)
+    pop_data <- pop_data[pop_data$date >= date_range[1] & pop_data$date <= date_range[2],]
+    price_data <- price_data[price_data$date >= date_range[1] & price_data$date <= date_range[2],]
+    
     # 合併資料
     merged_data <- pop_data %>%
-      left_join(price_data, by = "date") %>%
-      na.omit()
+      full_join(price_data, by = "date") %>%
+      arrange(date)
+    
+    # 對合併後的資料進行插值
+    if(any(is.na(merged_data$population)) || any(is.na(merged_data$price_per_sqm))) {
+      merged_data$population <- zoo::na.approx(merged_data$population, na.rm = FALSE)
+      merged_data$price_per_sqm <- zoo::na.approx(merged_data$price_per_sqm, na.rm = FALSE)
+    }
+    
+    # 移除仍然有NA的列
+    merged_data <- merged_data[complete.cases(merged_data),]
     
     list(
       pop_data = pop_data,
@@ -66,7 +90,7 @@ function(input, output, session) {
   # 繪製人口趨勢圖
   output$population_plot <- renderPlot({
     data <- processed_data()
-    if (is.null(data) || is.null(data$pop_data)) {
+    if (is.null(data) || is.null(data$pop_data) || nrow(data$pop_data) < 2) {
       return(NULL)
     }
     
@@ -83,7 +107,7 @@ function(input, output, session) {
   # 繪製房價趨勢圖
   output$price_plot <- renderPlot({
     data <- processed_data()
-    if (is.null(data) || is.null(data$price_data)) {
+    if (is.null(data) || is.null(data$price_data) || nrow(data$price_data) < 2) {
       return(NULL)
     }
     
@@ -100,7 +124,7 @@ function(input, output, session) {
   # 繪製相關性分析圖
   output$correlation_plot <- renderPlot({
     data <- processed_data()
-    if (is.null(data) || is.null(data$merged_data) || nrow(data$merged_data) == 0) {
+    if (is.null(data) || is.null(data$merged_data) || nrow(data$merged_data) < 3) {
       return(NULL)
     }
     
@@ -119,7 +143,7 @@ function(input, output, session) {
   # 顯示相關係數
   output$correlation_text <- renderText({
     data <- processed_data()
-    if (is.null(data) || is.null(data$merged_data) || nrow(data$merged_data) == 0) {
+    if (is.null(data) || is.null(data$merged_data) || nrow(data$merged_data) < 3) {
       return("無法計算相關係數：資料不足")
     }
     

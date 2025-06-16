@@ -2,6 +2,7 @@
 library(shiny)
 library(dplyr)
 library(ggplot2)
+library(zoo)  # 用於處理時間序列資料
 
 # 城市代碼對照表（中文名稱=英文代號）
 city_codes <- c(
@@ -30,23 +31,33 @@ read_population_data <- function(city_name, year) {
 
   # 讀取每月遷移資料，轉為長格式
   migration_data <- read.csv(migration_file, header = TRUE, stringsAsFactors = FALSE)
-  net_mig <- suppressWarnings(as.numeric(migration_data[1, 2:13]))
-  if (any(is.na(net_mig))) warning("遷移資料有NA，請檢查檔案內容格式。")
-  # 計算每月人口（正確遞增）
-  population_vec <- numeric(12)
-  population_vec[1] <- total_population
-  if (length(net_mig) == 12) {
-    for (i in 2:12) {
-      population_vec[i] <- population_vec[i-1] + net_mig[i]
-    }
-  }
+  net_mig <- suppressWarnings(as.numeric(gsub(",", "", as.character(migration_data[1, 2:13]))))
+  
+  # 處理NA值：使用0替代NA（假設沒有資料代表沒有遷移）
+  net_mig[is.na(net_mig)] <- 0
+  
   migration_long <- data.frame(
-    date = sprintf("%d-%02d", 1911 + as.numeric(year), 1:12),
-    population = population_vec,
+    month = 1:12,
     net_migration = net_mig
   )
-  print(migration_long) # debug 輸出
-  return(migration_long)
+  
+  # 生成完整的月份序列
+  all_months <- data.frame(
+    month = 1:12,
+    date = sprintf("%d-%02d", 1911 + as.numeric(year), 1:12)
+  )
+  
+  # 合併資料並確保所有月份都有
+  migration_long <- merge(all_months, migration_long, by = "month", all.x = TRUE)
+  migration_long$net_migration[is.na(migration_long$net_migration)] <- 0
+  
+  # 計算累計人口：使用累積和
+  migration_long$population <- total_population + cumsum(migration_long$net_migration)
+
+  # 輸出欄位：date, population, net_migration
+  result <- migration_long[, c("date", "population", "net_migration")]
+  result <- result[order(result$date), ]  # 確保按日期排序
+  return(result)
 }
 
 # 讀取房價資料的函數
@@ -62,30 +73,58 @@ read_house_price_data <- function(city_name, year) {
   } else {
     stop("找不到房價資料檔案，請檢查檔名是否為 [年分]/[城市代碼]_lvr_land_[a或b].csv")
   }
+  
+  # 讀取並處理房價資料
   price_data <- read.csv(price_file, stringsAsFactors = FALSE)
+  
   # 只保留區與單價與交易年月日
   price_data <- price_data[, c("鄉鎮市區_The.villages.and.towns.urban.district", 
-                               "單價元平方公尺_the.unit.price..NTD...square.meter.", 
-                               "交易年月日_transaction.year.month.and.day")]
+                              "單價元平方公尺_the.unit.price..NTD...square.meter.", 
+                              "交易年月日_transaction.year.month.and.day")]
+  
   # 處理單價欄位，移除逗號並轉為數字
-  price_data$單價元平方公尺_the.unit.price..NTD...square.meter. <- as.numeric(gsub(",", "", price_data$單價元平方公尺_the.unit.price..NTD...square.meter.))
+  price_data$單價元平方公尺_the.unit.price..NTD...square.meter. <- 
+    suppressWarnings(as.numeric(gsub(",", "", price_data$單價元平方公尺_the.unit.price..NTD...square.meter.)))
+  
+  # 移除NA值
+  price_data <- price_data[!is.na(price_data$單價元平方公尺_the.unit.price..NTD...square.meter.), ]
+  
   # 取年月
   price_data$year <- as.integer(substr(price_data$交易年月日_transaction.year.month.and.day, 1, 3)) + 1911
   price_data$month <- as.integer(substr(price_data$交易年月日_transaction.year.month.and.day, 4, 5))
   price_data$date <- sprintf("%d-%02d", price_data$year, price_data$month)
+  
+  # 生成完整的月份序列
+  all_months <- data.frame(
+    date = sprintf("%d-%02d", 1911 + as.numeric(year), 1:12)
+  )
+  
   # 依月份計算平均單價
   price_monthly <- price_data %>%
     group_by(date) %>%
     summarise(price_per_sqm = mean(單價元平方公尺_the.unit.price..NTD...square.meter., na.rm = TRUE)) %>%
     ungroup()
+  
+  # 確保所有月份都有資料
+  price_monthly <- merge(all_months, price_monthly, by = "date", all.x = TRUE)
+  
+  # 使用線性插值填補缺失值
+  if(any(is.na(price_monthly$price_per_sqm))) {
+    price_monthly <- price_monthly[order(price_monthly$date), ]
+    price_monthly$price_per_sqm <- na.approx(price_monthly$price_per_sqm, na.rm = FALSE)
+  }
+  
   return(as.data.frame(price_monthly))
 }
 
 # 計算相關係數的函數
 calculate_correlation <- function(pop_data, price_data) {
   merged_data <- pop_data %>%
-    left_join(price_data, by = "date")
-  merged_data <- merged_data[complete.cases(merged_data), ]
+    inner_join(price_data, by = "date") %>%
+    na.omit()
+  
+  if(nrow(merged_data) < 3) return(NA)
+  
   correlation <- cor(merged_data$population, merged_data$price_per_sqm)
   return(correlation)
 }
