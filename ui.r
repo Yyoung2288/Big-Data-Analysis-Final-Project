@@ -1,27 +1,27 @@
 fluidPage(
-  titlePanel("台灣各縣市房價與人口變化分析"),
+  titlePanel("台灣人口遷移與房價關係分析"),
   
   sidebarLayout(
     sidebarPanel(
-      selectInput("city", "選擇縣市：",
-                 choices = city_list,
-                 selected = "台北市"),
-      
-      dateRangeInput("date_range", "選擇日期範圍：",
-                    start = date_range[1],
-                    end = date_range[2]),
-      
-      selectInput("plot_type", "選擇圖表類型：",
-                 choices = c("人口變化趨勢" = "population",
-                           "房價變化趨勢" = "price",
-                           "人口與房價關係" = "correlation"),
-                 selected = "population")
+      selectInput("city", "選擇城市：",
+                 choices = names(city_codes),
+                 selected = names(city_codes)[1]),
+      selectInput("year", "選擇年份：",
+                 choices = 104:112,
+                 selected = 104),
+      actionButton("analyze", "分析")
     ),
     
     mainPanel(
-      plotlyOutput("main_plot"),
-      br(),
-      tableOutput("data_table")
+      tabsetPanel(
+        tabPanel("人口趨勢",
+                 plotOutput("population_plot")),
+        tabPanel("房價趨勢",
+                 plotOutput("price_plot")),
+        tabPanel("相關性分析",
+                 plotOutput("correlation_plot"),
+                 verbatimTextOutput("correlation_text"))
+      )
     )
   )
 )

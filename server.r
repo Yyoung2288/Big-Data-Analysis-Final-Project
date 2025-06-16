@@ -1,52 +1,50 @@
 function(input, output, session) {
   
-  # 根據選擇的縣市和日期範圍過濾資料
-  filtered_data <- reactive({
-    subset(merged_data,
-           city == input$city &
-           date >= input$date_range[1] &
-           date <= input$date_range[2])
-  })
-  
-  # 繪製主要圖表
-  output$main_plot <- renderPlotly({
-    data <- filtered_data()
+  # 當點擊分析按鈕時觸發
+  observeEvent(input$analyze, {
+    # 讀取資料
+    pop_data <- read_population_data(input$city, input$year)
+    price_data <- read_house_price_data(input$city, input$year)
     
-    if (input$plot_type == "population") {
-      p <- ggplot(data, aes(x = date)) +
-        geom_line(aes(y = population, color = "總人口")) +
-        geom_line(aes(y = net_migration, color = "淨遷入人口")) +
-        labs(title = paste(input$city, "人口變化趨勢"),
+    # 繪製人口趨勢圖
+    output$population_plot <- renderPlot({
+      ggplot(pop_data, aes(x = date, y = population)) +
+        geom_line(color = "blue") +
+        labs(title = paste0(input$city, " ", input$year, "年人口趨勢"),
              x = "日期",
-             y = "人口數",
-             color = "指標") +
+             y = "人口數") +
         theme_minimal()
-      
-    } else if (input$plot_type == "price") {
-      p <- ggplot(data, aes(x = date, y = price)) +
+    })
+    
+    # 繪製房價趨勢圖
+    output$price_plot <- renderPlot({
+      ggplot(price_data, aes(x = date, y = price_per_sqm)) +
         geom_line(color = "red") +
-        labs(title = paste(input$city, "房價變化趨勢"),
+        labs(title = paste0(input$city, " ", input$year, "年房價趨勢"),
              x = "日期",
-             y = "房價") +
+             y = "每平方公尺單價") +
         theme_minimal()
-      
-    } else {
-      p <- ggplot(data, aes(x = population, y = price)) +
-        geom_point() +
-        geom_smooth(method = "lm") +
-        labs(title = paste(input$city, "人口與房價關係"),
-             x = "人口數",
-             y = "房價") +
-        theme_minimal()
-    }
+    })
     
-    ggplotly(p)
+    # 繪製相關性分析圖
+    output$correlation_plot <- renderPlot({
+      merged_data <- pop_data %>%
+        left_join(price_data, by = "date") %>%
+        na.omit()
+      
+      ggplot(merged_data, aes(x = population, y = price_per_sqm)) +
+        geom_point() +
+        geom_smooth(method = "lm", se = TRUE) +
+        labs(title = "人口數與房價相關性分析",
+             x = "人口數",
+             y = "每平方公尺單價") +
+        theme_minimal()
+    })
+    
+    # 顯示相關係數
+    output$correlation_text <- renderText({
+      correlation <- calculate_correlation(pop_data, price_data)
+      paste0("相關係數：", round(correlation, 4))
+    })
   })
-  
-  # 顯示資料表格
-  output$data_table <- renderTable({
-    data <- filtered_data()
-    # 只顯示重要的欄位
-    data[, c("date", "population", "net_migration", "price")]
-  }, digits = 2)
 }
