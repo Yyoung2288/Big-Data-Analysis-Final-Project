@@ -2,8 +2,6 @@
 library(shiny)
 library(dplyr)
 library(ggplot2)
-library(lubridate)
-library(stringr)
 
 # 城市代碼對照表（中文名稱=英文代號）
 city_codes <- c(
