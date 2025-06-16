@@ -2,8 +2,6 @@
 library(shiny)
 library(dplyr)
 library(ggplot2)
-library(lubridate)
-library(stringr)
 
 # 城市代碼對照表（中文名稱=英文代號）
 city_codes <- c(
@@ -34,18 +32,21 @@ read_population_data <- function(city_name, year) {
   migration_data <- read.csv(migration_file, header = TRUE, stringsAsFactors = FALSE)
   net_mig <- suppressWarnings(as.numeric(migration_data[1, 2:13]))
   if (any(is.na(net_mig))) warning("遷移資料有NA，請檢查檔案內容格式。")
+  # 計算每月人口（正確遞增）
+  population_vec <- numeric(12)
+  population_vec[1] <- total_population
+  if (length(net_mig) == 12) {
+    for (i in 2:12) {
+      population_vec[i] <- population_vec[i-1] + net_mig[i]
+    }
+  }
   migration_long <- data.frame(
-    month = 1:12,
+    date = sprintf("%d-%02d", 1911 + as.numeric(year), 1:12),
+    population = population_vec,
     net_migration = net_mig
   )
-  migration_long$date <- sprintf("%d-%02d", 1911 + as.numeric(year), migration_long$month)
-
-  # 計算每月人口
-  migration_long$population <- total_population + cumsum(c(0, migration_long$net_migration[-length(migration_long$net_migration)]))
-
-  # 輸出欄位：date, population, net_migration
-  result <- migration_long[, c("date", "population", "net_migration")]
-  return(result)
+  print(migration_long) # debug 輸出
+  return(migration_long)
 }
 
 # 讀取房價資料的函數

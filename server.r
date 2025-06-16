@@ -8,13 +8,13 @@ function(input, output, session) {
     
     # 繪製人口趨勢圖
     output$population_plot <- renderPlot({
-      ggplot(pop_data, aes(x = date, y = population)) +
-        geom_line(color = "blue") +
-        labs(title = paste0(input$city, " ", input$year, "年人口趨勢"),
-             x = "日期",
-             y = "人口數") +
-        theme_minimal()
-    })
+  ggplot(pop_data, aes(x = date, y = population, group = 1)) +
+    geom_line(color = "blue") +
+    labs(title = paste0(input$city, " ", input$year, "年人口趨勢"),
+         x = "日期",
+         y = "人口數") +
+    theme_minimal()
+})
     
     # 繪製房價趨勢圖
     output$price_plot <- renderPlot({
