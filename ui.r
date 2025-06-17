@@ -6,8 +6,11 @@ fluidPage(
       selectInput("city", "選擇城市：",
                  choices = names(city_codes),
                  selected = names(city_codes)[1]),
+      selectInput("district", "選擇區域：",
+                 choices = c("全部"),
+                 selected = "全部"),
       selectInput("year", "選擇年份：",
-                 choices = 104:112,
+                 choices = 104:113,
                  selected = 104),
       actionButton("analyze", "分析")
     ),
