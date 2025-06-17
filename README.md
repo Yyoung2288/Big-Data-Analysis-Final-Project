@@ -47,7 +47,7 @@ Urban housing markets in Taiwan have seen significant changes over the past deca
 
 ## Project Role
 
-This project was completed as a team coursework assignment. I was responsible for:
+This project was completed as a team project. I was responsible for:
 
 - Collecting and cleaning data from government open data portals
 - Performing regression analysis and visualization
