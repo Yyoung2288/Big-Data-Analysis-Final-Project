@@ -1,10 +1,18 @@
 function(input, output, session) {
   
+  # 當城市或年份改變時，更新區域選單
+  observe({
+    districts <- get_districts(input$city, input$year)
+    updateSelectInput(session, "district",
+                     choices = districts,
+                     selected = "全部")
+  })
+  
   # 使用 reactive 表達式來處理資料，避免重複計算
   processed_data <- reactive({
     # 讀取資料
     pop_data <- tryCatch({
-      data <- read_population_data(input$city, input$year)
+      data <- read_population_data(input$city, input$year, input$district)
       if (is.null(data) || nrow(data) == 0) return(NULL)
       
       # 確保日期格式正確
@@ -32,7 +40,7 @@ function(input, output, session) {
     })
 
     price_data <- tryCatch({
-      data <- read_house_price_data(input$city, input$year)
+      data <- read_house_price_data(input$city, input$year, input$district)
       if (is.null(data) || nrow(data) == 0) return(NULL)
       
       # 確保日期格式正確
@@ -94,10 +102,12 @@ function(input, output, session) {
       return(NULL)
     }
     
+    title <- paste0(input$city, " ", input$year, "年人口趨勢")
+    
     ggplot(data$pop_data, aes(x = date, y = population)) +
       geom_line(color = "#0072B2", linewidth = 1) +
       geom_point(color = "#0072B2", size = 2) +
-      labs(title = paste0(input$city, " ", input$year, "年人口趨勢"),
+      labs(title = title,
            x = "月份",
            y = "人口數") +
       scale_x_date(date_labels = "%b", date_breaks = "1 month") +
@@ -111,14 +121,34 @@ function(input, output, session) {
       return(NULL)
     }
     
-    ggplot(data$price_data, aes(x = date, y = price_per_sqm)) +
-      geom_line(color = "#D55E00", linewidth = 1) +
-      geom_point(color = "#D55E00", size = 2) +
-      labs(title = paste0(input$city, " ", input$year, "年房價趨勢"),
-           x = "月份",
-           y = "每平方公尺單價") +
+    title <- paste0(input$city, " ", input$year, "年房價趨勢")
+    
+    # 設定顏色調色盤
+    n_districts <- length(unique(data$price_data$鄉鎮市區_The.villages.and.towns.urban.district))
+    color_palette <- scales::hue_pal()(n_districts)
+    
+    # 如果只有一個區域，使用單一顏色
+    if (n_districts == 1) {
+      p <- ggplot(data$price_data, aes(x = date, y = price_per_sqm)) +
+        geom_line(color = "#D55E00", linewidth = 1) +
+        geom_point(color = "#D55E00", size = 2)
+    } else {
+      p <- ggplot(data$price_data, aes(x = date, y = price_per_sqm, 
+                                      color = 鄉鎮市區_The.villages.and.towns.urban.district)) +
+        geom_line(linewidth = 1) +
+        geom_point(size = 2) +
+        scale_color_manual(values = color_palette)
+    }
+    
+    p + labs(title = title,
+             x = "月份",
+             y = "每平方公尺單價",
+             color = "區域") +
       scale_x_date(date_labels = "%b", date_breaks = "1 month") +
-      theme_minimal(base_size = 16)
+      theme_minimal(base_size = 16) +
+      theme(legend.position = "right",
+            legend.title = element_text(size = 12),
+            legend.text = element_text(size = 10))
   })
   
   # 繪製相關性分析圖
@@ -131,13 +161,33 @@ function(input, output, session) {
     merged_data <- data$merged_data
     corr <- cor(merged_data$population, merged_data$price_per_sqm, use = "complete.obs")
     
-    ggplot(merged_data, aes(x = population, y = price_per_sqm)) +
-      geom_point(color = "#009E73", size = 2, alpha = 0.7) +
-      geom_smooth(method = "lm", se = TRUE, color = "#E69F00", linetype = "dashed") +
-      labs(title = paste0("人口數與房價相關性分析 (r = ", round(corr, 3), ")"),
-           x = "人口數",
-           y = "每平方公尺單價") +
-      theme_minimal(base_size = 16)
+    title <- paste0(input$city, " 人口數與房價相關性分析 (r = ", round(corr, 3), ")")
+    
+    # 設定顏色調色盤
+    n_districts <- length(unique(merged_data$鄉鎮市區_The.villages.and.towns.urban.district))
+    color_palette <- scales::hue_pal()(n_districts)
+    
+    # 如果只有一個區域，使用單一顏色
+    if (n_districts == 1) {
+      p <- ggplot(merged_data, aes(x = population, y = price_per_sqm)) +
+        geom_point(color = "#009E73", size = 2, alpha = 0.7) +
+        geom_smooth(method = "lm", se = TRUE, color = "#E69F00", linetype = "dashed")
+    } else {
+      p <- ggplot(merged_data, aes(x = population, y = price_per_sqm, 
+                                  color = 鄉鎮市區_The.villages.and.towns.urban.district)) +
+        geom_point(size = 2, alpha = 0.7) +
+        geom_smooth(method = "lm", se = TRUE, linetype = "dashed") +
+        scale_color_manual(values = color_palette)
+    }
+    
+    p + labs(title = title,
+             x = "人口數",
+             y = "每平方公尺單價",
+             color = "區域") +
+      theme_minimal(base_size = 16) +
+      theme(legend.position = "right",
+            legend.title = element_text(size = 12),
+            legend.text = element_text(size = 10))
   })
   
   # 顯示相關係數
