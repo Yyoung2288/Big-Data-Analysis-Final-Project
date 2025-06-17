@@ -3,6 +3,7 @@ library(shiny)
 library(dplyr)
 library(ggplot2)
 library(zoo)  # 用於處理時間序列資料
+library(scales)  # 用於顏色調色盤
 
 # 城市代碼對照表（中文名稱=英文代號）
 city_codes <- c(
