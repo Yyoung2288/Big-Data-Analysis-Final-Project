@@ -59,6 +59,41 @@ get_districts <- function(city_name, year) {
   return(c("全部", sort(all_districts)))
 }
 
+# 計算累積人口的輔助函數
+calculate_cumulative_population <- function(city_code, city_name, target_year, district_name) {
+  folder <- paste0(city_code, "_", city_name)
+  init_file <- file.path("Data", "people_cleanedData", folder, paste0(city_code, "_init.csv"))
+  
+  # 讀取初始人口數（104年1月）
+  init_pop <- read.csv(init_file, header = TRUE, stringsAsFactors = FALSE)
+  district_row <- which(init_pop[,1] == district_name)
+  if (length(district_row) == 0) {
+    return(NULL)
+  }
+  
+  base_population <- suppressWarnings(as.numeric(gsub(",", "", init_pop[district_row[1], 2])))
+  if (is.na(base_population)) {
+    return(NULL)
+  }
+  
+  # 累加104年到target_year-1年的所有遷移數據
+  cumulative_migration <- 0
+  for (year in 104:(target_year-1)) {
+    migration_file <- file.path("Data", "people_cleanedData", folder, paste0(city_code, "_", year, ".csv"))
+    if (file.exists(migration_file)) {
+      migration_data <- read.csv(migration_file, header = TRUE, stringsAsFactors = FALSE)
+      migration_row <- which(migration_data[,1] == district_name)
+      if (length(migration_row) > 0) {
+        year_migration <- suppressWarnings(as.numeric(gsub(",", "", as.character(migration_data[migration_row[1], 2:13]))))
+        year_migration[is.na(year_migration)] <- 0
+        cumulative_migration <- cumulative_migration + sum(year_migration)
+      }
+    }
+  }
+  
+  return(base_population + cumulative_migration)
+}
+
 # 讀取人口資料的函數
 read_population_data <- function(city_name, year, district = "全部") {
   if (is.null(city_name) || is.null(year)) {
@@ -78,14 +113,13 @@ read_population_data <- function(city_name, year, district = "全部") {
     return(NULL)
   }
   
-  # 讀取初始人口數和每月遷移資料
-  init_pop <- read.csv(init_file, header = TRUE, stringsAsFactors = FALSE)
+  # 讀取當年遷移資料
   migration_data <- read.csv(migration_file, header = TRUE, stringsAsFactors = FALSE)
   
   # 生成完整的月份序列
   all_months <- data.frame(
     month = 1:12,
-    date = sprintf("%03d%02d", as.numeric(year), 1:12)  # 修改為民國年月格式
+    date = sprintf("%03d%02d", as.numeric(year), 1:12)
   )
   
   # 移除總計列，只保留各區域資料
@@ -103,14 +137,9 @@ read_population_data <- function(city_name, year, district = "全部") {
   all_results <- data.frame()
   
   for (current_district in districts_to_process) {
-    # 從初始人口數中找到對應區域
-    district_row <- which(init_pop[,1] == current_district)
-    if (length(district_row) == 0) {
-      next
-    }
-    total_population <- gsub(",", "", init_pop[district_row[1], 2])
-    total_population <- suppressWarnings(as.numeric(total_population))
-    if (is.na(total_population)) {
+    # 計算該年度1月1日的正確基礎人口數
+    base_population <- calculate_cumulative_population(city_code, city_name, as.numeric(year), current_district)
+    if (is.null(base_population)) {
       next
     }
     
@@ -133,8 +162,8 @@ read_population_data <- function(city_name, year, district = "全部") {
     migration_long <- merge(all_months, migration_long, by = "month", all.x = TRUE)
     migration_long$net_migration[is.na(migration_long$net_migration)] <- 0
     
-    # 計算累計人口：使用累積和
-    migration_long$population <- total_population + cumsum(migration_long$net_migration)
+    # 計算累計人口：從正確的基礎人口開始累積
+    migration_long$population <- base_population + cumsum(migration_long$net_migration)
     
     # 添加區域資訊
     migration_long$district <- current_district
