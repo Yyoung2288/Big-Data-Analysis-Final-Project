@@ -55,21 +55,30 @@ server <- function(input, output, session) {
   # 人口趨勢分析
   observeEvent(input$analyze, {
     if(input$year == "全部") {
-      # 讀取所有年份的資料
+      # 讀取所有年份的資料，顯示每個月的數據
       all_data <- lapply(104:113, function(year) {
         data <- read_population_data(input$city, year, input$district)
         if(!is.null(data)) {
           data$year <- year
+          data$month <- as.numeric(substr(data$date, 4, 5))
+          # 創建連續的時間序列：年份*12 + 月份 - 1
+          data$time_sequence <- (year - 104) * 12 + data$month
           data
         }
       })
-      pop_data <- do.call(rbind, all_data)
       
-      # 轉換日期格式為年份
-      pop_data$date <- as.numeric(pop_data$year)
+      # 移除NULL元素並合併
+      all_data <- all_data[!sapply(all_data, is.null)]
+      if(length(all_data) > 0) {
+        pop_data <- do.call(rbind, all_data)
+      } else {
+        pop_data <- NULL
+      }
     } else {
       pop_data <- read_population_data(input$city, input$year, input$district)
-      pop_data$month <- as.numeric(substr(pop_data$date, 4, 5))
+      if(!is.null(pop_data)) {
+        pop_data$month <- as.numeric(substr(pop_data$date, 4, 5))
+      }
     }
     
     population_data$data <- pop_data
@@ -81,29 +90,52 @@ server <- function(input, output, session) {
   output$population_plot <- renderPlot({
     if (!is.null(population_data$data) && nrow(population_data$data) > 0) {
       if(population_data$year == "全部") {
-        # 繪製年度趨勢圖
-        ggplot(population_data$data, aes(x = date, y = population, color = district)) +
-          geom_line() +
-          geom_point() +
-          scale_x_continuous(breaks = 104:113) +
-          labs(title = paste(population_data$city, "歷年人口趨勢"),
+        # 繪製跨年月份趨勢圖
+        # 創建年份標籤位置（每年1月的位置）
+        year_breaks <- seq(1, 120, by = 12)  # 1, 13, 25, 37, ...
+        year_labels <- 104:113
+        
+        ggplot(population_data$data, aes(x = time_sequence, y = population, color = district)) +
+          geom_line(linewidth = 1) +
+          geom_point(size = 1.5, alpha = 0.7) +
+          scale_x_continuous(
+            breaks = year_breaks,
+            labels = year_labels,
+            minor_breaks = seq(1, 120, by = 3)  # 每季度一個小刻度
+          ) +
+          labs(title = paste(population_data$city, "歷年人口趨勢（月度數據）"),
                x = "年份",
                y = "人口數",
                color = "鄉鎮市區") +
           theme_minimal() +
-          theme(legend.position = "right")
+          theme(
+            legend.position = "right",
+            plot.title = element_text(size = 16, face = "bold"),
+            axis.title = element_text(size = 12),
+            axis.text = element_text(size = 10),
+            legend.title = element_text(size = 12),
+            legend.text = element_text(size = 10),
+            panel.grid.minor.x = element_line(color = "grey90", size = 0.3)
+          )
       } else {
         # 繪製月份趨勢圖
         ggplot(population_data$data, aes(x = month, y = population, color = district)) +
-          geom_line() +
-          geom_point() +
+          geom_line(linewidth = 1) +
+          geom_point(size = 2) +
           scale_x_continuous(breaks = 1:12) +
           labs(title = paste(population_data$city, population_data$year, "年人口趨勢"),
                x = "月份",
                y = "人口數",
                color = "鄉鎮市區") +
           theme_minimal() +
-          theme(legend.position = "right")
+          theme(
+            legend.position = "right",
+            plot.title = element_text(size = 16, face = "bold"),
+            axis.title = element_text(size = 12),
+            axis.text = element_text(size = 10),
+            legend.title = element_text(size = 12),
+            legend.text = element_text(size = 10)
+          )
       }
     }
   })
@@ -188,6 +220,7 @@ server <- function(input, output, session) {
         data <- read_population_data(input$corr_city, year, input$corr_district)
         if(!is.null(data)) {
           data$year <- year
+          data$month <- as.numeric(substr(data$date, 4, 5))
           data
         }
       })
