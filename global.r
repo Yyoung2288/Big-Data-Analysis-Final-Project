@@ -17,7 +17,14 @@ city_codes <- c(
 
 # 獲取區域列表的函數
 get_districts <- function(city_name, year) {
-  city_code <- city_codes[[city_name]]
+  if (is.null(city_name) || city_name == "") {
+    return(c("全部"))
+  }
+  
+  city_code <- city_codes[city_name]
+  if (is.null(city_code)) {
+    return(c("全部"))
+  }
   
   # 從人口資料獲取區域
   pop_districts <- c()
@@ -46,16 +53,31 @@ get_districts <- function(city_name, year) {
   
   # 合併並去重
   all_districts <- unique(c(pop_districts, price_districts))
+  if (length(all_districts) == 0) {
+    return(c("全部"))
+  }
   return(c("全部", sort(all_districts)))
 }
 
 # 讀取人口資料的函數
 read_population_data <- function(city_name, year, district = "全部") {
-  city_code <- city_codes[[city_name]]
+  if (is.null(city_name) || is.null(year)) {
+    return(NULL)
+  }
+  
+  city_code <- city_codes[city_name]
+  if (is.null(city_code)) {
+    return(NULL)
+  }
+  
   folder <- paste0(city_code, "_", city_name)
   init_file <- file.path("Data", "people_cleanedData", folder, paste0(city_code, "_init.csv"))
   migration_file <- file.path("Data", "people_cleanedData", folder, paste0(city_code, "_", year, ".csv"))
-
+  
+  if (!file.exists(init_file) || !file.exists(migration_file)) {
+    return(NULL)
+  }
+  
   # 讀取初始人口數和每月遷移資料
   init_pop <- read.csv(init_file, header = TRUE, stringsAsFactors = FALSE)
   migration_data <- read.csv(migration_file, header = TRUE, stringsAsFactors = FALSE)
@@ -63,7 +85,7 @@ read_population_data <- function(city_name, year, district = "全部") {
   # 生成完整的月份序列
   all_months <- data.frame(
     month = 1:12,
-    date = sprintf("%d-%02d", 1911 + as.numeric(year), 1:12)
+    date = sprintf("%03d%02d", as.numeric(year), 1:12)  # 修改為民國年月格式
   )
   
   # 移除總計列，只保留各區域資料
@@ -72,7 +94,7 @@ read_population_data <- function(city_name, year, district = "全部") {
   # 如果選擇特定區域，則只處理該區域
   if (district != "全部") {
     if (!district %in% districts_to_process) {
-      stop(paste("找不到區域：", district))
+      return(NULL)
     }
     districts_to_process <- district
   }
@@ -84,20 +106,17 @@ read_population_data <- function(city_name, year, district = "全部") {
     # 從初始人口數中找到對應區域
     district_row <- which(init_pop[,1] == current_district)
     if (length(district_row) == 0) {
-      warning(paste("在初始人口資料中找不到區域：", current_district))
       next
     }
     total_population <- gsub(",", "", init_pop[district_row[1], 2])
     total_population <- suppressWarnings(as.numeric(total_population))
     if (is.na(total_population)) {
-      warning(paste("區域", current_district, "的初始人口數轉換失敗"))
       next
     }
     
     # 從遷移資料中找到對應區域
     migration_row <- which(migration_data[,1] == current_district)
     if (length(migration_row) == 0) {
-      warning(paste("在遷移資料中找不到區域：", current_district))
       next
     }
     net_mig <- suppressWarnings(as.numeric(gsub(",", "", as.character(migration_data[migration_row[1], 2:13]))))
@@ -132,16 +151,25 @@ read_population_data <- function(city_name, year, district = "全部") {
 
 # 讀取房價資料的函數
 read_house_price_data <- function(city_name, year, district = "全部") {
-  city_code <- city_codes[[city_name]]
+  if (is.null(city_name) || is.null(year)) {
+    return(NULL)
+  }
+  
+  city_code <- city_codes[city_name]
+  if (is.null(city_code)) {
+    return(NULL)
+  }
+  
   # 先找a檔，找不到再找b檔
   price_file_a <- file.path("Data", "MergedHousePricingData", as.character(year), paste0(city_code, "_lvr_land_a.csv"))
   price_file_b <- file.path("Data", "MergedHousePricingData", as.character(year), paste0(city_code, "_lvr_land_b.csv"))
+  
   if (file.exists(price_file_a)) {
     price_file <- price_file_a
   } else if (file.exists(price_file_b)) {
     price_file <- price_file_b
   } else {
-    stop("找不到房價資料檔案，請檢查檔名是否為 [年分]/[城市代碼]_lvr_land_[a或b].csv")
+    return(NULL)
   }
   
   # 讀取並處理房價資料
@@ -149,60 +177,55 @@ read_house_price_data <- function(city_name, year, district = "全部") {
   
   # 只保留區與單價與交易年月日
   price_data <- price_data[, c("鄉鎮市區_The.villages.and.towns.urban.district", 
-                              "單價元平方公尺_the.unit.price..NTD...square.meter.", 
-                              "交易年月日_transaction.year.month.and.day")]
+                               "單價元平方公尺_the.unit.price..NTD...square.meter.", 
+                               "交易年月日_transaction.year.month.and.day")]
   
-  # 生成完整的月份序列
-  all_months <- data.frame(
-    date = sprintf("%d-%02d", 1911 + as.numeric(year), 1:12)
-  )
+  # 處理交易年月日，轉換為民國年月格式
+  price_data$date <- substr(price_data$交易年月日_transaction.year.month.and.day, 1, 5)  # 取前5位數字（年月）
+  price_data$date <- sprintf("%03d%02d", 
+                             as.numeric(substr(price_data$date, 1, 3)),  # 年
+                             as.numeric(substr(price_data$date, 4, 5)))  # 月
+  
+  # 處理單價欄位，移除逗號並轉為數字
+  price_data$price_per_sqm <- suppressWarnings(as.numeric(gsub(",", "", price_data$單價元平方公尺_the.unit.price..NTD...square.meter.)))
+  
+  # 移除NA值
+  price_data <- price_data[!is.na(price_data$price_per_sqm), ]
   
   # 如果選擇特定區域，則過濾資料
   if (district != "全部") {
     price_data <- price_data[price_data$鄉鎮市區_The.villages.and.towns.urban.district == district, ]
   }
   
-  # 處理單價欄位，移除逗號並轉為數字
-  price_data$單價元平方公尺_the.unit.price..NTD...square.meter. <- 
-    suppressWarnings(as.numeric(gsub(",", "", price_data$單價元平方公尺_the.unit.price..NTD...square.meter.)))
+  # 計算每個區域每月的平均房價
+  price_summary <- aggregate(price_per_sqm ~ date + 鄉鎮市區_The.villages.and.towns.urban.district, 
+                             data = price_data, 
+                             FUN = mean)
   
-  # 移除NA值
-  price_data <- price_data[!is.na(price_data$單價元平方公尺_the.unit.price..NTD...square.meter.), ]
-  
-  # 取年月
-  price_data$year <- as.integer(substr(price_data$交易年月日_transaction.year.month.and.day, 1, 3)) + 1911
-  price_data$month <- as.integer(substr(price_data$交易年月日_transaction.year.month.and.day, 4, 5))
-  price_data$date <- sprintf("%d-%02d", price_data$year, price_data$month)
-  
-  # 依月份和區域計算平均單價
-  price_monthly <- price_data %>%
-    group_by(date, 鄉鎮市區_The.villages.and.towns.urban.district, .groups = "drop") %>%
-    summarise(price_per_sqm = mean(單價元平方公尺_the.unit.price..NTD...square.meter., na.rm = TRUE)) %>%
-    ungroup()
-  
-  # 確保所有月份和區域都有資料
-  all_combinations <- expand.grid(
-    date = all_months$date,
-    district = unique(price_data$鄉鎮市區_The.villages.and.towns.urban.district),
-    stringsAsFactors = FALSE
+  # 生成完整的月份序列
+  all_months <- data.frame(
+    date = sprintf("%03d%02d", as.numeric(year), 1:12)
   )
-  names(all_combinations)[2] <- "鄉鎮市區_The.villages.and.towns.urban.district"
   
-  price_monthly <- merge(all_combinations, price_monthly, 
-                        by = c("date", "鄉鎮市區_The.villages.and.towns.urban.district"), 
-                        all.x = TRUE)
+  # 確保每個區域都有完整的月份資料
+  districts <- unique(price_summary$鄉鎮市區_The.villages.and.towns.urban.district)
+  result <- data.frame()
+  
+  for (dist in districts) {
+    dist_data <- price_summary[price_summary$鄉鎮市區_The.villages.and.towns.urban.district == dist, ]
+    dist_months <- merge(all_months, dist_data, by = "date", all.x = TRUE)
+    dist_months$鄉鎮市區_The.villages.and.towns.urban.district <- dist
+    result <- rbind(result, dist_months)
+  }
   
   # 使用線性插值填補缺失值
-  price_monthly <- price_monthly %>%
-    group_by(鄉鎮市區_The.villages.and.towns.urban.district) %>%
-    arrange(date) %>%
-    mutate(price_per_sqm = na.approx(price_per_sqm, na.rm = FALSE)) %>%
-    ungroup()
+  result <- result[order(result$鄉鎮市區_The.villages.and.towns.urban.district, result$date), ]
+  for (dist in districts) {
+    idx <- result$鄉鎮市區_The.villages.and.towns.urban.district == dist
+    result$price_per_sqm[idx] <- na.approx(result$price_per_sqm[idx], na.rm = FALSE)
+  }
   
-  # 移除仍然有NA的列
-  price_monthly <- price_monthly[complete.cases(price_monthly), ]
-  
-  return(as.data.frame(price_monthly))
+  return(result)
 }
 
 # 計算相關係數的函數
