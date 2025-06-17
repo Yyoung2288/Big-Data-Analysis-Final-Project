@@ -75,36 +75,37 @@ server <- function(input, output, session) {
     population_data$data <- pop_data
     population_data$city <- input$city
     population_data$year <- input$year
-    
-    output$population_plot <- renderPlot({
-      if (!is.null(population_data$data) && nrow(population_data$data) > 0) {
-        if(input$year == "全部") {
-          # 繪製年度趨勢圖
-          ggplot(population_data$data, aes(x = date, y = population, color = district)) +
-            geom_line() +
-            geom_point() +
-            scale_x_continuous(breaks = 104:113) +
-            labs(title = paste(population_data$city, "歷年人口趨勢"),
-                 x = "年份",
-                 y = "人口數",
-                 color = "鄉鎮市區") +
-            theme_minimal() +
-            theme(legend.position = "right")
-        } else {
-          # 繪製月份趨勢圖
-          ggplot(population_data$data, aes(x = month, y = population, color = district)) +
-            geom_line() +
-            geom_point() +
-            scale_x_continuous(breaks = 1:12) +
-            labs(title = paste(population_data$city, population_data$year, "年人口趨勢"),
-                 x = "月份",
-                 y = "人口數",
-                 color = "鄉鎮市區") +
-            theme_minimal() +
-            theme(legend.position = "right")
-        }
+  })
+  
+  # 人口趨勢圖表輸出
+  output$population_plot <- renderPlot({
+    if (!is.null(population_data$data) && nrow(population_data$data) > 0) {
+      if(population_data$year == "全部") {
+        # 繪製年度趨勢圖
+        ggplot(population_data$data, aes(x = date, y = population, color = district)) +
+          geom_line() +
+          geom_point() +
+          scale_x_continuous(breaks = 104:113) +
+          labs(title = paste(population_data$city, "歷年人口趨勢"),
+               x = "年份",
+               y = "人口數",
+               color = "鄉鎮市區") +
+          theme_minimal() +
+          theme(legend.position = "right")
+      } else {
+        # 繪製月份趨勢圖
+        ggplot(population_data$data, aes(x = month, y = population, color = district)) +
+          geom_line() +
+          geom_point() +
+          scale_x_continuous(breaks = 1:12) +
+          labs(title = paste(population_data$city, population_data$year, "年人口趨勢"),
+               x = "月份",
+               y = "人口數",
+               color = "鄉鎮市區") +
+          theme_minimal() +
+          theme(legend.position = "right")
       }
-    })
+    }
   })
   
   # 房價趨勢分析
@@ -136,46 +137,47 @@ server <- function(input, output, session) {
     
     price_data$city <- input$price_city
     price_data$year <- input$price_year
-    
-    output$price_plot <- renderPlot({
-      if (!is.null(price_data$data) && nrow(price_data$data) > 0) {
-        if(input$price_year == "全部") {
-          # 繪製年度趨勢圖
-          ggplot(price_data$data, aes(x = date, y = price_per_sqm, 
-                                      color = 鄉鎮市區_The.villages.and.towns.urban.district,
-                                      group = 鄉鎮市區_The.villages.and.towns.urban.district)) +
-            geom_line(linewidth = 1) +
-            geom_point(size = 3) +
-            scale_x_continuous(breaks = 104:113) +
-            labs(title = paste(price_data$city, "歷年房價趨勢"),
-                 x = "年份",
-                 y = "每平方公尺單價（年均價）",
-                 color = "鄉鎮市區") +
-            theme_minimal() +
-            theme(
-              legend.position = "right",
-              plot.title = element_text(size = 16, face = "bold"),
-              axis.title = element_text(size = 12),
-              axis.text = element_text(size = 10),
-              legend.title = element_text(size = 12),
-              legend.text = element_text(size = 10)
-            )
-        } else {
-          # 繪製月份趨勢圖
-          ggplot(price_data$data, aes(x = month, y = price_per_sqm, 
-                                      color = 鄉鎮市區_The.villages.and.towns.urban.district)) +
-            geom_line() +
-            geom_point() +
-            scale_x_continuous(breaks = 1:12) +
-            labs(title = paste(price_data$city, price_data$year, "年房價趨勢"),
-                 x = "月份",
-                 y = "每平方公尺單價",
-                 color = "鄉鎮市區") +
-            theme_minimal() +
-            theme(legend.position = "right")
-        }
+  })
+  
+  # 房價趨勢圖表輸出
+  output$price_plot <- renderPlot({
+    if (!is.null(price_data$data) && nrow(price_data$data) > 0) {
+      if(price_data$year == "全部") {
+        # 繪製年度趨勢圖
+        ggplot(price_data$data, aes(x = date, y = price_per_sqm, 
+                                    color = 鄉鎮市區_The.villages.and.towns.urban.district,
+                                    group = 鄉鎮市區_The.villages.and.towns.urban.district)) +
+          geom_line(linewidth = 1) +
+          geom_point(size = 3) +
+          scale_x_continuous(breaks = 104:113) +
+          labs(title = paste(price_data$city, "歷年房價趨勢"),
+               x = "年份",
+               y = "每平方公尺單價（年均價）",
+               color = "鄉鎮市區") +
+          theme_minimal() +
+          theme(
+            legend.position = "right",
+            plot.title = element_text(size = 16, face = "bold"),
+            axis.title = element_text(size = 12),
+            axis.text = element_text(size = 10),
+            legend.title = element_text(size = 12),
+            legend.text = element_text(size = 10)
+          )
+      } else {
+        # 繪製月份趨勢圖
+        ggplot(price_data$data, aes(x = month, y = price_per_sqm, 
+                                    color = 鄉鎮市區_The.villages.and.towns.urban.district)) +
+          geom_line() +
+          geom_point() +
+          scale_x_continuous(breaks = 1:12) +
+          labs(title = paste(price_data$city, price_data$year, "年房價趨勢"),
+               x = "月份",
+               y = "每平方公尺單價",
+               color = "鄉鎮市區") +
+          theme_minimal() +
+          theme(legend.position = "right")
       }
-    })
+    }
   })
   
   # 相關性分析
@@ -222,41 +224,45 @@ server <- function(input, output, session) {
       
       correlation_data$data <- merged_data
       correlation_data$city <- input$corr_city
+      correlation_data$year <- input$corr_year
       
       if (nrow(merged_data) > 0) {
         # 計算相關係數
-        corr <- cor(merged_data$population, merged_data$price_per_sqm, use = "complete.obs")
-        
-        # 繪製相關性分析圖
-        output$correlation_plot <- renderPlot({
-          if (!is.null(correlation_data$data) && nrow(correlation_data$data) > 0) {
-            ggplot(correlation_data$data, aes(x = population, y = price_per_sqm, color = district)) +
-              geom_point(size = 3) +
-              geom_smooth(method = "lm", se = TRUE) +
-              labs(title = paste(correlation_data$city, 
-                                 if(input$corr_year == "全部") "歷年" else paste(input$corr_year, "年"),
-                                 "人口與房價相關性分析"),
-                   x = "人口數",
-                   y = "每平方公尺單價",
-                   color = "鄉鎮市區") +
-              theme_minimal() +
-              theme(legend.position = "right")
-          }
-        })
-        
-        # 顯示相關性文字說明
-        output$correlation_text <- renderText({
-          paste(" 相關係數：", round(corr, 4), "\n",
-                "相關係數解釋：",
-                if(corr > 0.7) "強正相關" 
-                else if(corr > 0.3) "中等正相關" 
-                else if(corr > 0) "弱正相關"
-                else if(corr < -0.7) "強負相關" 
-                else if(corr < -0.3) "中等負相關" 
-                else if(corr < 0) "弱負相關"
-                else "無相關")
-        })
+        correlation_data$correlation <- cor(merged_data$population, merged_data$price_per_sqm, use = "complete.obs")
       }
+    }
+  })
+  
+  # 相關性分析圖表輸出
+  output$correlation_plot <- renderPlot({
+    if (!is.null(correlation_data$data) && nrow(correlation_data$data) > 0) {
+      ggplot(correlation_data$data, aes(x = population, y = price_per_sqm, color = district)) +
+        geom_point(size = 3) +
+        geom_smooth(method = "lm", se = TRUE) +
+        labs(title = paste(correlation_data$city, 
+                           if(correlation_data$year == "全部") "歷年" else paste(correlation_data$year, "年"),
+                           "人口與房價相關性分析"),
+             x = "人口數",
+             y = "每平方公尺單價",
+             color = "鄉鎮市區") +
+        theme_minimal() +
+        theme(legend.position = "right")
+    }
+  })
+  
+  # 顯示相關性文字說明
+  output$correlation_text <- renderText({
+    if (!is.null(correlation_data$correlation)) {
+      corr <- correlation_data$correlation
+      paste(" 相關係數：", round(corr, 4), "\n",
+            "相關係數解釋：",
+            if(corr > 0.7) "強正相關" 
+            else if(corr > 0.3) "中等正相關" 
+            else if(corr > 0) "弱正相關"
+            else if(corr < -0.7) "強負相關" 
+            else if(corr < -0.3) "中等負相關" 
+            else if(corr < 0) "弱負相關"
+            else "無相關")
     }
   })
 }
