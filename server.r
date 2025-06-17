@@ -13,6 +13,8 @@ server <- function(input, output, session) {
   # 更新人口趨勢頁面的區域選項
   observe({
     districts <- get_districts(input$city, if(input$year == "全部") 113 else input$year)
+    districts <- districts[districts != "全部" & districts != ""]  # 移除空白和"全部"
+    districts <- c("全部", "總計", districts)  # 加回特殊選項
     current_district <- input$district
     selected <- if (!is.null(current_district) && current_district %in% districts) current_district else districts[1]
     updateSelectInput(session, "district", choices = districts, selected = selected)
@@ -21,6 +23,8 @@ server <- function(input, output, session) {
   # 更新房價趨勢頁面的區域選項
   observe({
     districts <- get_districts(input$price_city, if(input$price_year == "全部") 113 else input$price_year)
+    districts <- districts[districts != "全部" & districts != ""]  # 移除空白和"全部"
+    districts <- c("全部", districts)  # 加回"全部"選項
     current_district <- input$price_district
     selected <- if (!is.null(current_district) && current_district %in% districts) current_district else districts[1]
     updateSelectInput(session, "price_district", choices = districts, selected = selected)
@@ -29,6 +33,7 @@ server <- function(input, output, session) {
   # 更新相關性分析頁面的區域選項
   observe({
     districts <- get_districts(input$corr_city, if(input$corr_year == "全部") 113 else input$corr_year)
+    districts <- districts[districts != "全部" & districts != ""]  # 移除空白和"全部"
     current_district <- input$corr_district
     selected <- if (!is.null(current_district) && current_district %in% districts) current_district else districts[1]
     updateSelectInput(session, "corr_district", choices = districts, selected = selected)
@@ -57,13 +62,31 @@ server <- function(input, output, session) {
     if(input$year == "全部") {
       # 讀取所有年份的資料，顯示每個月的數據
       all_data <- lapply(104:113, function(year) {
-        data <- read_population_data(input$city, year, input$district)
-        if(!is.null(data)) {
-          data$year <- year
-          data$month <- as.numeric(substr(data$date, 4, 5))
-          # 創建連續的時間序列：年份*12 + 月份 - 1
-          data$time_sequence <- (year - 104) * 12 + data$month
-          data
+        if(input$district == "總計") {
+          # 讀取所有區域的資料並計算總和
+          all_districts_data <- read_population_data(input$city, year, "全部")
+          if(!is.null(all_districts_data)) {
+            # 過濾掉空白區域
+            all_districts_data <- all_districts_data[all_districts_data$district != "", ]
+            total_data <- all_districts_data %>%
+              group_by(date) %>%
+              summarise(population = sum(population, na.rm = TRUE)) %>%
+              mutate(district = "總計")
+            total_data$year <- year
+            total_data$month <- as.numeric(substr(total_data$date, 4, 5))
+            total_data$time_sequence <- (year - 104) * 12 + total_data$month
+            total_data
+          }
+        } else {
+          data <- read_population_data(input$city, year, input$district)
+          if(!is.null(data)) {
+            # 過濾掉空白區域
+            data <- data[data$district != "", ]
+            data$year <- year
+            data$month <- as.numeric(substr(data$date, 4, 5))
+            data$time_sequence <- (year - 104) * 12 + data$month
+            data
+          }
         }
       })
       
@@ -75,9 +98,23 @@ server <- function(input, output, session) {
         pop_data <- NULL
       }
     } else {
-      pop_data <- read_population_data(input$city, input$year, input$district)
-      if(!is.null(pop_data)) {
-        pop_data$month <- as.numeric(substr(pop_data$date, 4, 5))
+      if(input$district == "總計") {
+        # 讀取所有區域的資料並計算總和
+        all_districts_data <- read_population_data(input$city, input$year, "全部")
+        if(!is.null(all_districts_data)) {
+          pop_data <- all_districts_data %>%
+            group_by(date) %>%
+            summarise(population = sum(population, na.rm = TRUE)) %>%
+            mutate(district = "總計",
+                   month = as.numeric(substr(date, 4, 5)))
+        } else {
+          pop_data <- NULL
+        }
+      } else {
+        pop_data <- read_population_data(input$city, input$year, input$district)
+        if(!is.null(pop_data)) {
+          pop_data$month <- as.numeric(substr(pop_data$date, 4, 5))
+        }
       }
     }
     
@@ -147,6 +184,8 @@ server <- function(input, output, session) {
       all_data <- lapply(104:113, function(year) {
         data <- read_house_price_data(input$price_city, year, input$price_district)
         if(!is.null(data)) {
+          # 過濾掉空白區域
+          data <- data[data$鄉鎮市區_The.villages.and.towns.urban.district != "", ]
           data$year <- year
           data
         }
@@ -164,7 +203,11 @@ server <- function(input, output, session) {
       price_data$data$date <- price_data$data$year
     } else {
       price_data$data <- read_house_price_data(input$price_city, input$price_year, input$price_district)
-      price_data$data$month <- as.numeric(substr(price_data$data$date, 4, 5))
+      if(!is.null(price_data$data)) {
+        # 過濾掉空白區域
+        price_data$data <- price_data$data[price_data$data$鄉鎮市區_The.villages.and.towns.urban.district != "", ]
+        price_data$data$month <- as.numeric(substr(price_data$data$date, 4, 5))
+      }
     }
     
     price_data$city <- input$price_city
@@ -219,6 +262,8 @@ server <- function(input, output, session) {
       all_pop_data <- lapply(104:113, function(year) {
         data <- read_population_data(input$corr_city, year, input$corr_district)
         if(!is.null(data)) {
+          # 過濾掉空白區域
+          data <- data[data$district != "", ]
           data$year <- year
           data$month <- as.numeric(substr(data$date, 4, 5))
           data
@@ -229,6 +274,8 @@ server <- function(input, output, session) {
       all_price_data <- lapply(104:113, function(year) {
         data <- read_house_price_data(input$corr_city, year, input$corr_district)
         if(!is.null(data)) {
+          # 過濾掉空白區域
+          data <- data[data$鄉鎮市區_The.villages.and.towns.urban.district != "", ]
           data$year <- year
           data
         }
@@ -236,7 +283,16 @@ server <- function(input, output, session) {
       price_data_corr <- do.call(rbind, all_price_data)
     } else {
       pop_data <- read_population_data(input$corr_city, input$corr_year, input$corr_district)
+      if(!is.null(pop_data)) {
+        # 過濾掉空白區域
+        pop_data <- pop_data[pop_data$district != "", ]
+      }
+      
       price_data_corr <- read_house_price_data(input$corr_city, input$corr_year, input$corr_district)
+      if(!is.null(price_data_corr)) {
+        # 過濾掉空白區域
+        price_data_corr <- price_data_corr[price_data_corr$鄉鎮市區_The.villages.and.towns.urban.district != "", ]
+      }
     }
     
     if (!is.null(pop_data) && !is.null(price_data_corr) && 
