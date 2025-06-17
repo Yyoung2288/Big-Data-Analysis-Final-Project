@@ -49,9 +49,17 @@ Urban housing markets in Taiwan have seen significant changes over the past deca
 
 This project was completed as a team project. I was responsible for:
 
-- Collecting and cleaning data from government open data portals
-- Performing regression analysis and visualization
-- Designing and implementing the interactive dashboard using Shiny
+- Responsible for handling missing values, standardizing formats, and preparing datasets for analysis.
+- Created summary statistics, population change tables, and initial housing market overview.
+- Investigated related studies and provided contextual explanation for observed trends.
+
+## Team Members
+
+This project was conducted by the following team members as part of a university course:
+
+- **Liu Tz-Yang (劉子揚)** – Data Cleaning and Preprocessing, Statistical Summary and Descriptive Analysis, visualization, Literature Review and Background Research 
+- **SZE WEI-LAN (斯煒嵐)** – Data Integration and Transformation, regression analysis, visualization, Presentation and Documentation 
+<!-- You can expand or simplify this list depending on your preferences and their consent -->
 
 ## Limitations
 
@@ -70,6 +78,6 @@ This project was completed as a team project. I was responsible for:
 
 ## Author
 
-Liu Tzu-Yang (劉子揚)  
+Liu Tz-Yang (劉子揚)  
 Department of Computer Science and Engineering  
 Yuan Ze University
