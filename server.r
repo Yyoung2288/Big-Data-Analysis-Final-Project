@@ -144,6 +144,7 @@ server <- function(input, output, session) {
                x = "年份",
                y = "人口數",
                color = "鄉鎮市區") +
+          scale_y_continuous(labels = scales::comma) +
           theme_minimal() +
           theme(
             legend.position = "right",
@@ -164,6 +165,7 @@ server <- function(input, output, session) {
                x = "月份",
                y = "人口數",
                color = "鄉鎮市區") +
+          scale_y_continuous(labels = scales::comma) +
           theme_minimal() +
           theme(
             legend.position = "right",
@@ -229,6 +231,7 @@ server <- function(input, output, session) {
                x = "年份",
                y = "每平方公尺單價（年均價）",
                color = "鄉鎮市區") +
+          scale_y_continuous(labels = scales::comma) +
           theme_minimal() +
           theme(
             legend.position = "right",
@@ -249,6 +252,7 @@ server <- function(input, output, session) {
                x = "月份",
                y = "每平方公尺單價",
                color = "鄉鎮市區") +
+          scale_y_continuous(labels = scales::comma) +
           theme_minimal() +
           theme(legend.position = "right")
       }
