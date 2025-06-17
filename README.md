@@ -45,14 +45,6 @@ Urban housing markets in Taiwan have seen significant changes over the past deca
   *(Replace with actual chart once available)*  
   ![Price-Migration Correlation Chart](assets/correlation_plot_shilin.png)
 
-## Project Role
-
-This project was completed as a team project. I was responsible for:
-
-- Responsible for handling missing values, standardizing formats, and preparing datasets for analysis.
-- Created summary statistics, population change tables, and initial housing market overview.
-- Investigated related studies and provided contextual explanation for observed trends.
-
 ## Limitations
 
 - The regression model is linear and does not account for external confounding factors (e.g., economic policy, transportation access).
@@ -67,6 +59,14 @@ This project was completed as a team project. I was responsible for:
 ## Demo
 
 *(If the Shiny app or report is hosted online, provide a link here)*
+
+## Project Role
+
+This project was completed as a team project. I was responsible for:
+
+- Responsible for handling missing values, standardizing formats, and preparing datasets for analysis.
+- Created summary statistics, population change tables, and initial housing market overview.
+- Investigated related studies and provided contextual explanation for observed trends.
 
 ## Team Members
 
