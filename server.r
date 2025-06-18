@@ -13,7 +13,8 @@ server <- function(input, output, session) {
   # 更新人口趨勢頁面的區域選項
   observe({
     districts <- get_districts(input$city, if(input$year == "全部") 113 else input$year)
-    districts <- districts[districts != "全部" & districts != ""]  # 移除空白和"全部"
+    districts <- districts[districts != "全部" & districts != ""]
+    districts <- districts[districts != input$city]  # 過濾掉和縣市同名的區域
     districts <- c("全部", "總計", districts)  # 加回特殊選項
     current_district <- input$district
     selected <- if (!is.null(current_district) && current_district %in% districts) current_district else districts[1]
@@ -23,7 +24,8 @@ server <- function(input, output, session) {
   # 更新房價趨勢頁面的區域選項
   observe({
     districts <- get_districts(input$price_city, if(input$price_year == "全部") 113 else input$price_year)
-    districts <- districts[districts != "全部" & districts != ""]  # 移除空白和"全部"
+    districts <- districts[districts != "全部" & districts != ""]
+    districts <- districts[districts != input$price_city]  # 過濾掉和縣市同名的區域
     districts <- c("全部", districts)  # 加回"全部"選項
     current_district <- input$price_district
     selected <- if (!is.null(current_district) && current_district %in% districts) current_district else districts[1]
@@ -33,7 +35,8 @@ server <- function(input, output, session) {
   # 更新相關性分析頁面的區域選項
   observe({
     districts <- get_districts(input$corr_city, if(input$corr_year == "全部") 113 else input$corr_year)
-    districts <- districts[districts != "全部" & districts != ""]  # 移除空白和"全部"
+    districts <- districts[districts != "全部" & districts != ""]
+    districts <- districts[districts != input$corr_city]  # 過濾掉和縣市同名的區域
     current_district <- input$corr_district
     selected <- if (!is.null(current_district) && current_district %in% districts) current_district else districts[1]
     updateSelectInput(session, "corr_district", choices = districts, selected = selected)
