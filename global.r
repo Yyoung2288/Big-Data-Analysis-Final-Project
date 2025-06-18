@@ -16,50 +16,33 @@ CITY_CODES <- c(
   "金門縣" = "U", "連江縣" = "V"
 )
 
-# 獲取區域列表的函數
+# 預處理：建立城市區域對照表
+CITY_DISTRICTS <- lapply(names(CITY_CODES), function(city_name) {
+  city_code <- CITY_CODES[city_name]
+  
+  # 從人口資料獲取區域
+  districts <- c()
+  folder <- paste0(city_code, "_", city_name)
+  migration_file <- file.path("Data", "people_cleanedData", folder, paste0(city_code, "_113.csv"))
+  if (file.exists(migration_file)) {
+    migration_data <- read.csv(migration_file, stringsAsFactors = FALSE)
+    districts <- migration_data$區域別[migration_data$區域別 != "總計"]
+    districts <- districts[districts != ""]
+    districts <- sort(districts)
+  }
+  
+  return(districts)
+})
+names(CITY_DISTRICTS) <- names(CITY_CODES)
+
+# 獲取區域列表的函數（使用預處理的資料）
 get_districts <- function(city_name, year = NULL) {
   if (is.null(city_name) || city_name == "") return(c("全部"))
+  if (!(city_name %in% names(CITY_DISTRICTS))) return(c("全部"))
   
-  city_code <- CITY_CODES[city_name]
-  if (is.null(city_code)) return(c("全部"))
-  
-  # 從人口資料獲取區域（讀取所有年份）
-  pop_districts <- c()
-  folder <- paste0(city_code, "_", city_name)
-  for (y in 104:113) {
-    migration_file <- file.path("Data", "people_cleanedData", folder, paste0(city_code, "_", y, ".csv"))
-    if (file.exists(migration_file)) {
-      migration_data <- read.csv(migration_file, stringsAsFactors = FALSE)
-      pop_districts <- c(pop_districts, migration_data$區域別[migration_data$區域別 != "總計"])
-    }
-  }
-  
-  # 從房價資料獲取區域（讀取所有年份）
-  price_districts <- c()
-  for (y in 104:113) {
-    price_file_a <- file.path("Data", "MergedHousePricingData", as.character(y), paste0(city_code, "_lvr_land_a.csv"))
-    price_file_b <- file.path("Data", "MergedHousePricingData", as.character(y), paste0(city_code, "_lvr_land_b.csv"))
-    
-    if (file.exists(price_file_a)) {
-      price_file <- price_file_a
-    } else if (file.exists(price_file_b)) {
-      price_file <- price_file_b
-    } else {
-      next
-    }
-    
-    if (file.exists(price_file)) {
-      price_data <- read.csv(price_file, stringsAsFactors = FALSE)
-      price_districts <- c(price_districts, unique(price_data$鄉鎮市區_The.villages.and.towns.urban.district))
-    }
-  }
-  
-  # 合併並去重
-  all_districts <- unique(c(pop_districts, price_districts))
-  all_districts <- all_districts[all_districts != ""]
-  
-  if (length(all_districts) == 0) return(c("全部"))
-  return(c("全部", sort(all_districts)))
+  districts <- CITY_DISTRICTS[[city_name]]
+  if (length(districts) == 0) return(c("全部"))
+  return(c("全部", districts))
 }
 
 # 計算累積人口的輔助函數
