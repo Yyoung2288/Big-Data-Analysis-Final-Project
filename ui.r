@@ -12,6 +12,7 @@ ui <- dashboardPage(
     sidebarMenu(
       menuItem("人口趨勢", tabName = "population", icon = icon("users")),
       menuItem("房價趨勢", tabName = "price", icon = icon("home")),
+      menuItem("人口-房價雙軸圖", tabName = "dualaxis", icon = icon("chart-bar")),
       menuItem("相關性分析", tabName = "correlation", icon = icon("chart-line"))
     )
   ),
@@ -64,6 +65,31 @@ ui <- dashboardPage(
                   title = "房價趨勢圖",
                   width = 9,
                   plotlyOutput("price_plot")
+                )
+              )
+      ),
+
+      # 雙軸圖頁面
+      tabItem(tabName = "dualaxis",
+              fluidRow(
+                box(
+                  title = "控制面板",
+                  width = 3,
+                  selectInput("dual_city", "選擇城市：",
+                              choices = names(city_codes),
+                              selected = names(city_codes)[1]),
+                  selectInput("dual_district", "選擇區域：",
+                              choices = NULL,
+                              selected = NULL),
+                  selectInput("dual_year", "選擇年份：",
+                              choices = c("全部", 104:113),
+                              selected = "全部"),
+                  actionButton("analyze_dual", "分析")
+                ),
+                box(
+                  title = "人口-房價雙軸圖",
+                  width = 9,
+                  plotlyOutput("dualaxis_plot")
                 )
               )
       ),
