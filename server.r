@@ -4,6 +4,7 @@ library(dplyr)
 library(zoo)
 library(scales)
 library(tidyr)
+library(plotly)
 
 # 載入全局函數
 source("global.R")
@@ -127,21 +128,18 @@ server <- function(input, output, session) {
   })
   
   # 人口趨勢圖表輸出
-  output$population_plot <- renderPlot({
+  output$population_plot <- renderPlotly({
     if (!is.null(population_data$data) && nrow(population_data$data) > 0) {
       if(population_data$year == "全部") {
-        # 繪製跨年月份趨勢圖
-        # 創建年份標籤位置（每年1月的位置）
-        year_breaks <- seq(1, 120, by = 12)  # 1, 13, 25, 37, ...
+        year_breaks <- seq(1, 120, by = 12)
         year_labels <- 104:113
-        
-        ggplot(population_data$data, aes(x = time_sequence, y = population, color = district)) +
+        p <- ggplot(population_data$data, aes(x = time_sequence, y = population, color = district)) +
           geom_line(linewidth = 1) +
           geom_point(size = 1.5, alpha = 0.7) +
           scale_x_continuous(
             breaks = year_breaks,
             labels = year_labels,
-            minor_breaks = seq(1, 120, by = 3)  # 每季度一個小刻度
+            minor_breaks = seq(1, 120, by = 3)
           ) +
           labs(title = paste(population_data$city, "歷年人口趨勢（月度數據）"),
                x = "年份",
@@ -158,9 +156,9 @@ server <- function(input, output, session) {
             legend.text = element_text(size = 10),
             panel.grid.minor.x = element_line(color = "grey90", size = 0.3)
           )
+        ggplotly(p)
       } else {
-        # 繪製月份趨勢圖
-        ggplot(population_data$data, aes(x = month, y = population, color = district)) +
+        p <- ggplot(population_data$data, aes(x = month, y = population, color = district)) +
           geom_line(linewidth = 1) +
           geom_point(size = 2) +
           scale_x_continuous(breaks = 1:12) +
@@ -178,6 +176,7 @@ server <- function(input, output, session) {
             legend.title = element_text(size = 12),
             legend.text = element_text(size = 10)
           )
+        ggplotly(p)
       }
     }
   })
@@ -220,11 +219,10 @@ server <- function(input, output, session) {
   })
   
   # 房價趨勢圖表輸出
-  output$price_plot <- renderPlot({
+  output$price_plot <- renderPlotly({
     if (!is.null(price_data$data) && nrow(price_data$data) > 0) {
       if(price_data$year == "全部") {
-        # 繪製年度趨勢圖
-        ggplot(price_data$data, aes(x = date, y = price_per_sqm, 
+        p <- ggplot(price_data$data, aes(x = date, y = price_per_sqm, 
                                     color = 鄉鎮市區_The.villages.and.towns.urban.district,
                                     group = 鄉鎮市區_The.villages.and.towns.urban.district)) +
           geom_line(linewidth = 1) +
@@ -244,9 +242,9 @@ server <- function(input, output, session) {
             legend.title = element_text(size = 12),
             legend.text = element_text(size = 10)
           )
+        ggplotly(p)
       } else {
-        # 繪製月份趨勢圖
-        ggplot(price_data$data, aes(x = month, y = price_per_sqm, 
+        p <- ggplot(price_data$data, aes(x = month, y = price_per_sqm, 
                                     color = 鄉鎮市區_The.villages.and.towns.urban.district)) +
           geom_line() +
           geom_point() +
@@ -258,6 +256,7 @@ server <- function(input, output, session) {
           scale_y_continuous(labels = scales::comma) +
           theme_minimal() +
           theme(legend.position = "right")
+        ggplotly(p)
       }
     }
   })
@@ -330,9 +329,9 @@ server <- function(input, output, session) {
   })
   
   # 相關性分析圖表輸出
-  output$correlation_plot <- renderPlot({
+  output$correlation_plot <- renderPlotly({
     if (!is.null(correlation_data$data) && nrow(correlation_data$data) > 0) {
-      ggplot(correlation_data$data, aes(x = population, y = price_per_sqm, color = district)) +
+      p <- ggplot(correlation_data$data, aes(x = population, y = price_per_sqm, color = district)) +
         geom_point(size = 3) +
         geom_smooth(method = "lm", se = TRUE) +
         labs(title = paste(correlation_data$city, 
@@ -343,6 +342,7 @@ server <- function(input, output, session) {
              color = "鄉鎮市區") +
         theme_minimal() +
         theme(legend.position = "right")
+      ggplotly(p)
     }
   })
   

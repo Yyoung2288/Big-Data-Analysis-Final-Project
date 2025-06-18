@@ -38,7 +38,7 @@ ui <- dashboardPage(
                 box(
                   title = "人口趨勢圖",
                   width = 9,
-                  plotOutput("population_plot")
+                  plotlyOutput("population_plot")
                 )
               )
       ),
@@ -63,7 +63,7 @@ ui <- dashboardPage(
                 box(
                   title = "房價趨勢圖",
                   width = 9,
-                  plotOutput("price_plot")
+                  plotlyOutput("price_plot")
                 )
               )
       ),
@@ -88,7 +88,7 @@ ui <- dashboardPage(
                 box(
                   title = "相關性分析",
                   width = 9,
-                  plotOutput("correlation_plot"),
+                  plotlyOutput("correlation_plot"),
                   verbatimTextOutput("correlation_text")
                 )
               )
