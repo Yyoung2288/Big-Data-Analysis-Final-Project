@@ -6,12 +6,9 @@ library(scales)
 library(tidyr)
 library(plotly)
 
-# 載入全局函數
 source("global.R")
 
-# 定義伺服器邏輯
 server <- function(input, output, session) {
-  # 儲存各頁面的區域列表
   districts_cache <- reactiveValues(
     population = NULL,
     price = NULL,
@@ -19,85 +16,68 @@ server <- function(input, output, session) {
     dualaxis = NULL
   )
 
-  # 更新人口趨勢頁面的區域選項
   observe({
-    # 只在城市改變時更新區域列表
     if (is.null(districts_cache$population) || districts_cache$population$city != input$city) {
-      districts <- get_districts(input$city, 113)  # 使用任意年份都可以
+      districts <- get_districts(input$city, 113)
       districts <- districts[districts != "全部" & districts != ""]
-      districts <- districts[districts != input$city]  # 過濾掉和縣市同名的區域
-      districts <- c("全部", "總計", districts)  # 加回特殊選項
+      districts <- districts[districts != input$city]
+      districts <- c("全部", "總計", districts)
       
-      # 更新快取
       districts_cache$population <- list(
         city = input$city,
         districts = districts
       )
       
-      # 更新選單
       updateSelectInput(session, "district", choices = districts, selected = districts[1])
     }
-  }) %>% bindEvent(input$city)  # 只在城市改變時觸發
+  }) %>% bindEvent(input$city)
   
-  # 更新房價趨勢頁面的區域選項
   observe({
-    # 只在城市改變時更新區域列表
     if (is.null(districts_cache$price) || districts_cache$price$city != input$price_city) {
-      districts <- get_districts(input$price_city, 113)  # 使用任意年份都可以
+      districts <- get_districts(input$price_city, 113)
       districts <- districts[districts != "全部" & districts != ""]
-      districts <- districts[districts != input$price_city]  # 過濾掉和縣市同名的區域
-      districts <- c("全部", districts)  # 加回"全部"選項
+      districts <- districts[districts != input$price_city]
+      districts <- c("全部", districts)
       
-      # 更新快取
       districts_cache$price <- list(
         city = input$price_city,
         districts = districts
       )
       
-      # 更新選單
       updateSelectInput(session, "price_district", choices = districts, selected = districts[1])
     }
-  }) %>% bindEvent(input$price_city)  # 只在城市改變時觸發
+  }) %>% bindEvent(input$price_city)
   
-  # 更新相關性分析頁面的區域選項
   observe({
-    # 只在城市改變時更新區域列表
     if (is.null(districts_cache$correlation) || districts_cache$correlation$city != input$corr_city) {
-      districts <- get_districts(input$corr_city, 113)  # 使用任意年份都可以
+      districts <- get_districts(input$corr_city, 113)
       districts <- districts[districts != "全部" & districts != ""]
-      districts <- districts[districts != input$corr_city]  # 過濾掉和縣市同名的區域
+      districts <- districts[districts != input$corr_city]
       
-      # 更新快取
       districts_cache$correlation <- list(
         city = input$corr_city,
         districts = districts
       )
       
-      # 更新選單
       updateSelectInput(session, "corr_district", choices = districts, selected = districts[1])
     }
-  }) %>% bindEvent(input$corr_city)  # 只在城市改變時觸發
+  }) %>% bindEvent(input$corr_city)
   
-  # 更新雙軸圖頁面的區域選項（不含「全部」）
   observe({
-    # 只在城市改變時更新區域列表
     if (is.null(districts_cache$dualaxis) || districts_cache$dualaxis$city != input$dual_city) {
-      districts <- get_districts(input$dual_city, 113)  # 使用任意年份都可以
+      districts <- get_districts(input$dual_city, 113)
       districts <- districts[districts != "全部" & districts != "總計" & districts != ""]
-      districts <- districts[districts != input$dual_city]  # 過濾掉和縣市同名的區域
+      districts <- districts[districts != input$dual_city]
       
-      # 更新快取
       districts_cache$dualaxis <- list(
         city = input$dual_city,
         districts = districts
       )
       
-      # 更新選單
       updateSelectInput(session, "dual_district", choices = districts, selected = districts[1])
     }
-  }) %>% bindEvent(input$dual_city)  # 只在城市改變時觸發
+  }) %>% bindEvent(input$dual_city)
   
-  # 儲存當前圖表數據和標題
   population_data <- reactiveValues(
     data = NULL,
     city = NULL,
@@ -115,20 +95,16 @@ server <- function(input, output, session) {
     city = NULL
   )
   
-  # 雙軸圖資料儲存
   dualaxis_data <- reactiveValues(
     data = NULL,
     city = NULL,
     year = NULL
   )
   
-  # 人口趨勢分析
   observeEvent(input$analyze, {
     if(input$year == "全部") {
-      # 讀取所有年份的資料，顯示每個月的數據
       all_data <- lapply(104:113, function(year) {
         if(input$district == "總計") {
-          # 讀取所有區域的資料並計算總和
           all_districts_data <- read_population_data(input$city, year, "全部")
           if(!is.null(all_districts_data)) {
             all_districts_data <- all_districts_data[all_districts_data$district != "", ]
@@ -153,13 +129,11 @@ server <- function(input, output, session) {
         }
       })
       
-      # 移除NULL元素並合併
       all_data <- all_data[!sapply(all_data, is.null)]
       pop_data <- if(length(all_data) > 0) do.call(rbind, all_data) else NULL
       
     } else {
       if(input$district == "總計") {
-        # 讀取所有區域的資料並計算總和
         all_districts_data <- read_population_data(input$city, input$year, "全部")
         if(!is.null(all_districts_data)) {
           pop_data <- all_districts_data %>%
@@ -183,7 +157,6 @@ server <- function(input, output, session) {
     population_data$year <- input$year
   })
     
-  # 人口趨勢圖表輸出
   output$population_plot <- renderPlotly({
     if (!is.null(population_data$data) && nrow(population_data$data) > 0) {
       if(population_data$year == "全部") {
@@ -252,10 +225,8 @@ server <- function(input, output, session) {
     }
     })
     
-  # 房價趨勢分析
   observeEvent(input$analyze_price, {
     if(input$price_year == "全部") {
-      # 讀取所有年份的資料
       all_data <- lapply(104:113, function(year) {
         data <- read_house_price_data(input$price_city, year, input$price_district)
         if(!is.null(data)) {
@@ -265,10 +236,8 @@ server <- function(input, output, session) {
         }
       })
       
-      # 合併所有年份的資料
       raw_data <- do.call(rbind, all_data)
       
-      # 計算每年的平均房價
       price_data$data <- raw_data %>%
         group_by(year, 鄉鎮市區_The.villages.and.towns.urban.district) %>%
         summarise(price_per_sqm = mean(price_per_sqm, na.rm = TRUE), .groups = "drop") %>%
@@ -287,7 +256,6 @@ server <- function(input, output, session) {
     price_data$year <- input$price_year
   })
   
-  # 房價趨勢圖表輸出
   output$price_plot <- renderPlotly({
     if (!is.null(price_data$data) && nrow(price_data$data) > 0) {
       if(price_data$year == "全部") {
@@ -350,10 +318,8 @@ server <- function(input, output, session) {
     }
     })
     
-  # 相關性分析
   observeEvent(input$analyze_corr, {
     if(input$corr_year == "全部") {
-      # 讀取所有年份的資料
       all_pop_data <- lapply(104:113, function(year) {
         data <- read_population_data(input$corr_city, year, input$corr_district)
         if(!is.null(data)) {
@@ -389,7 +355,6 @@ server <- function(input, output, session) {
     if (!is.null(pop_data) && !is.null(price_data_corr) && 
         nrow(pop_data) > 0 && nrow(price_data_corr) > 0) {
       
-      # 合併資料
       if(input$corr_year == "全部") {
         merged_data <- merge(pop_data, price_data_corr, 
                              by.x = c("year", "district"),
@@ -407,16 +372,13 @@ server <- function(input, output, session) {
       correlation_data$year <- input$corr_year
       
       if (nrow(merged_data) > 0) {
-        # 計算相關係數
         correlation_data$correlation <- cor(merged_data$population, merged_data$price_per_sqm, use = "complete.obs")
       }
     }
   })
   
-  # 相關性分析圖表輸出
   output$correlation_plot <- renderPlotly({
     if (!is.null(correlation_data$data) && nrow(correlation_data$data) > 0) {
-      # 過濾掉 NA 和無限值
       valid_data <- correlation_data$data[
         !is.na(correlation_data$data$population) & 
         !is.na(correlation_data$data$price_per_sqm) &
@@ -456,7 +418,6 @@ server <- function(input, output, session) {
           panel.grid.minor.x = element_line(linewidth = 0.3, color = "grey90")
         )
       
-      # 創建懸浮提示文字
       tooltip_text <- paste(
         "行政區：", valid_data$district,
         "<br>人口數：", scales::comma(valid_data$population), "人",
@@ -468,7 +429,6 @@ server <- function(input, output, session) {
     }
     })
     
-  # 顯示相關性文字說明
     output$correlation_text <- renderText({
     if (!is.null(correlation_data$correlation)) {
       corr <- correlation_data$correlation
@@ -484,13 +444,10 @@ server <- function(input, output, session) {
     }
   })
   
-  # 雙軸圖分析
   observeEvent(input$analyze_dual, {
-    # 讀取人口資料
     pop_data <- NULL
     price_data <- NULL
     if(input$dual_year == "全部") {
-      # 讀取人口資料
       all_pop <- lapply(104:113, function(year) {
         d <- read_population_data(input$dual_city, year, input$dual_district)
         if(!is.null(d)) {
@@ -501,11 +458,9 @@ server <- function(input, output, session) {
       })
       pop_data <- do.call(rbind, all_pop)
 
-      # 讀取房價資料並計算年平均
       all_price <- lapply(104:113, function(year) {
         d <- read_house_price_data(input$dual_city, year, input$dual_district)
         if(!is.null(d)) {
-          # 計算年平均房價
           d %>%
             group_by(鄉鎮市區_The.villages.and.towns.urban.district) %>%
             summarise(
@@ -527,13 +482,10 @@ server <- function(input, output, session) {
       }
     }
 
-    # 合併資料
     if(!is.null(pop_data) && !is.null(price_data) && nrow(pop_data) > 0 && nrow(price_data) > 0) {
       if(input$dual_year == "全部") {
-        # 統一欄位名稱
         pop_data$district_name <- pop_data$district
         price_data$district_name <- price_data$district
-        # 先計算人口資料的年平均，再與房價合併
         pop_yearly <- pop_data %>%
           group_by(year, district_name) %>%
           summarise(
@@ -545,7 +497,6 @@ server <- function(input, output, session) {
                        all = FALSE)
         merged$x_axis <- merged$year
       } else {
-        # 統一欄位名稱
         pop_data$district_name <- pop_data$district
         price_data$district_name <- price_data$鄉鎮市區_The.villages.and.towns.urban.district
         merged <- merge(pop_data, price_data, 
@@ -563,7 +514,6 @@ server <- function(input, output, session) {
     }
   })
 
-  # 雙軸圖輸出
   output$dualaxis_plot <- renderPlotly({
     d <- dualaxis_data$data
     if(!is.null(d) && nrow(d) > 0) {
