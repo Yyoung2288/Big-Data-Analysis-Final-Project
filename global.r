@@ -1,4 +1,3 @@
-# 載入必要的套件
 library(shiny)
 library(dplyr)
 library(ggplot2)
@@ -6,7 +5,6 @@ library(zoo)
 library(scales)
 library(plotly)
 
-# 城市代碼對照表
 CITY_CODES <- c(
   "台北市" = "A", "新北市" = "B", "台中市" = "C", "台南市" = "D",
   "高雄市" = "E", "桃園市" = "F", "新竹縣" = "G", "苗栗縣" = "H",
@@ -16,11 +14,9 @@ CITY_CODES <- c(
   "金門縣" = "U", "連江縣" = "V"
 )
 
-# 預處理：建立城市區域對照表
 CITY_DISTRICTS <- lapply(names(CITY_CODES), function(city_name) {
   city_code <- CITY_CODES[city_name]
   
-  # 從人口資料獲取區域
   districts <- c()
   folder <- paste0(city_code, "_", city_name)
   migration_file <- file.path("Data", "people_cleanedData", folder, paste0(city_code, "_113.csv"))
@@ -35,7 +31,6 @@ CITY_DISTRICTS <- lapply(names(CITY_CODES), function(city_name) {
 })
 names(CITY_DISTRICTS) <- names(CITY_CODES)
 
-# 獲取區域列表的函數（使用預處理的資料）
 get_districts <- function(city_name, year = NULL) {
   if (is.null(city_name) || city_name == "") return(c("全部"))
   if (!(city_name %in% names(CITY_DISTRICTS))) return(c("全部"))
@@ -45,7 +40,6 @@ get_districts <- function(city_name, year = NULL) {
   return(c("全部", districts))
 }
 
-# 計算累積人口的輔助函數
 calculate_cumulative_population <- function(city_code, city_name, target_year, district_name) {
   folder <- paste0(city_code, "_", city_name)
   init_file <- file.path("Data", "people_cleanedData", folder, paste0(city_code, "_init.csv"))
@@ -74,7 +68,6 @@ calculate_cumulative_population <- function(city_code, city_name, target_year, d
   return(base_population + cumulative_migration)
 }
 
-# 讀取人口資料的函數
 read_population_data <- function(city_name, year, district = "全部") {
   if (is.null(city_name) || is.null(year)) return(NULL)
   
@@ -128,7 +121,6 @@ read_population_data <- function(city_name, year, district = "全部") {
   return(all_results)
 }
 
-# 讀取房價資料的函數
 read_house_price_data <- function(city_name, year, district = "全部") {
   if (is.null(city_name) || is.null(year)) return(NULL)
   
@@ -185,7 +177,6 @@ read_house_price_data <- function(city_name, year, district = "全部") {
   return(result)
 }
 
-# 計算相關係數的函數
 calculate_correlation <- function(pop_data, price_data) {
   merged_data <- pop_data %>%
     inner_join(price_data, by = "date") %>%

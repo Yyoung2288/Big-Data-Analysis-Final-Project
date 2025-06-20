@@ -3,7 +3,6 @@ library(shinydashboard)
 
 source("global.R")
 
-# 定義 UI
 ui <- dashboardPage(
   dashboardHeader(
     title = "台灣人口遷移與房價關係分析",
@@ -22,7 +21,6 @@ ui <- dashboardPage(
   
   dashboardBody(
     tabItems(
-      # 人口趨勢頁面
       tabItem(
         tabName = "population",
         fluidRow(
@@ -57,7 +55,6 @@ ui <- dashboardPage(
         )
       ),
       
-      # 房價趨勢頁面
       tabItem(
         tabName = "price",
         fluidRow(
@@ -92,7 +89,6 @@ ui <- dashboardPage(
         )
       ),
 
-      # 雙軸圖頁面
       tabItem(
         tabName = "dualaxis",
         fluidRow(
@@ -127,7 +123,6 @@ ui <- dashboardPage(
         )
       ),
       
-      # 相關性分析頁面
       tabItem(
         tabName = "correlation",
         fluidRow(
