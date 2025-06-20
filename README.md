@@ -1,79 +1,94 @@
 # Population Migration and Housing Price Analysis in Taiwan (2015–2024)
 
-This project analyzes the relationship between population migration patterns and housing price fluctuations across Taiwan from 2015 to 2024. Using publicly available government datasets, we explore whether price increases drive residents away, or whether in-migration drives prices higher, through regression analysis and interactive visualization.
+This project investigates the interplay between population mobility and housing price dynamics across Taiwan’s 22 regions over a 10-year period. Leveraging open government datasets, we examine whether price spikes repel residents, or whether incoming migration drives price growth. The analysis combines data scraping, time-series aggregation, and interactive visualization via R Shiny.
 
 ## Motivation
 
-Urban housing markets in Taiwan have seen significant changes over the past decade, with some regions experiencing sharp population outflows and others sharp price growth. This project investigates whether these two phenomena are correlated, and aims to provide insights into regional housing dynamics for urban planning, policy evaluation, and academic research.
+In Taiwan’s rapidly urbanizing landscape, cities experience both soaring housing costs and demographic shifts. While high property prices are often blamed for population outflow, there remains limited empirical evidence quantifying this relationship across regions and time. Our research aims to fill this gap with large-scale, district-level data analytics.
 
 ## Data Sources
 
-- **Population Data**:  
-  [Department of Household Affairs – Population Dashboard](https://gis.ris.gov.tw/dashboard.html?key=E01)
+- Population migration: https://gis.ris.gov.tw/dashboard.html?key=E01
+- Housing transactions: https://plvr.land.moi.gov.tw/DownloadOpenData
+- Temporal scope: 2015–2024
+- Spatial scope: Administrative district level (e.g., Shilin, Beitou)
 
-- **Real Estate Transaction Data**:  
-  [Ministry of the Interior – Actual Price Registration Open Data](https://plvr.land.moi.gov.tw/DownloadOpenData)
+## Methodology
 
-- **Time Range**: 2015 to 2024  
-- **Spatial Granularity**: District level (e.g., Shilin, Datong, Beitou)
+### Data Workflow
 
-## Methods
+- Data scraping automated via Python selenium
+- Preprocessing includes:
+  - Standardization of temporal granularity (monthly/quarterly)
+  - Filtering out non-residential real estate
+  - Merging by district codes
 
-- **Data Processing**:  
-  Data was cleaned, merged by administrative region and time period, and transformed into time series format for analysis.
+### Analytical Methods
 
-- **Statistical Analysis**:
-  - Linear regression to evaluate correlation between net population migration and median housing prices per district.
-  - Comparison across time to identify trend reversals or delayed effects.
+- Pearson correlation between median housing price and net migration per district
+- Time-lag analysis to detect delayed response between variables
+- Linear regression for causal pattern inference
+- Visualization via:
+  - Dual-axis line plots (price vs. population)
+  - Regression scatter plots
+  - Interactive dashboards (Shiny)
 
-- **Visualization Tools**:  
-  Interactive dashboards and time series plots were built using R and the following libraries:
-  - `dplyr` (data manipulation)
-  - `ggplot2` (visualization)
-  - `zoo`, `scales` (time series formatting)
-  - `shiny` (dashboard construction)
+## Key Results
 
-## Key Findings
-
-- **Positive Correlation Identified**:  
-  Strong positive correlation observed between net in-migration and housing price increases in **Shilin**, **Datong**, and **Beitou** districts of Taipei.
-
-- **Temporal Synchronization**:  
-  In many districts, population inflow and housing price spikes occurred within the same year, suggesting a close relationship between mobility and affordability.
-
-- **Example Visualization**:  
-  *(Replace with actual chart once available)*  
-  ![Price-Migration Correlation Chart](assets/correlation_plot_shilin.png)
+- Strong positive correlation in districts like Shilin, Beitou, and Datong
+- Temporal synchronization: Price and population often rise within the same calendar year
+- Divergent patterns:
+  - High price, declining population (e.g., Da’an, Xinyi)
+  - Dual growth zones (e.g., Zhubei, Linkou)
+  - Population growth without price support (e.g., Bali)
+  - Dual decline (e.g., Shigang)
 
 ## Limitations
 
-- The regression model is linear and does not account for external confounding factors (e.g., economic policy, transportation access).
-- Real estate data is based on transaction records and may not fully reflect market price trends.
+- Analysis limited to average migration and price per year
+- Lacks confounding control variables (e.g., income, vacancy, job density)
+- Quarterly and monthly data mismatch required manual alignment
+- Linear models may oversimplify underlying nonlinear housing behaviors
 
 ## Future Work
 
-- Incorporate additional socioeconomic variables (e.g., income level, infrastructure projects)
-- Apply geospatial mapping techniques (`sf`, `leaflet`) for enhanced visualization
-- Explore machine learning models to capture nonlinear patterns
+- Integrate geospatial factors (e.g., transit, elevation, zoning)
+- Explore machine learning (e.g., SVR, XGBoost) for nonlinear modeling
+- Introduce causal inference frameworks (e.g., Granger causality)
+- Expand dashboard usability and GIS visualization
 
 ## Demo
 
-*(If the Shiny app or report is hosted online, provide a link here)*
+To launch the interactive dashboard:
+```R
+shiny::runApp("RApp/")
+```
 
-## Project Role
+## Team Contribution
 
-This project was completed as a team project. I was responsible for:
+This project was conducted as a capstone research under the Department of Computer Science and Engineering at Yuan Ze University.
 
-- Responsible for handling missing values, standardizing formats, and preparing datasets for analysis.
-- Created summary statistics, population change tables, and initial housing market overview.
-- Investigated related studies and provided contextual explanation for observed trends.
+- Tz-Yang Liu: 
+  - Python-based data scraping (2,640 files automated)
+  - Data cleaning (standardization, NA handling, joining)
+  - Summary statistics and early-stage visualizations
+  - Literature review and contextual synthesis
 
-## Team Members
+- Wei-Lan Sze: 
+  - Time-series modeling and regression
+  - Interactive Shiny app development
+  - Visualization design and narrative framing
+  - Final report writing and presentation
 
-This project was conducted by the following team members as part of a university course:
+Advisor: Prof. Ting-Ying Chien
 
-- **Liu Tz-Yang (劉子揚)** – Data Cleaning and Preprocessing, Statistical Summary and Descriptive Analysis, visualization, Literature Review and Background Research 
-- **SZE WEI-LAN (斯煒嵐)** – Data Integration and Transformation, regression analysis, visualization, Presentation and Documentation 
-<!-- You can expand or simplify this list depending on your preferences and their consent -->
+## Related Academic Report
 
+For full methodology, data interpretation, and regional policy implications, refer to our thesis:
+“Analysis of the Relationship Between Housing Prices and Population Mobility”  
+Yuan Ze University, Department of Computer Science and Engineering (2025)  
+(PDF available upon request)
 
+## License
+
+For academic or non-commercial use. Please cite this repository if reused.
