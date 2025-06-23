@@ -63,6 +63,8 @@ To launch the interactive dashboard:
 ```R
 shiny::runApp("RApp/")
 ```
+
+![Zhongshan Trend](assets/demo.png)
 [Watch Demonstration Video](https://youtu.be/2qCja5m_uN0)
 
 ## Team Contribution
