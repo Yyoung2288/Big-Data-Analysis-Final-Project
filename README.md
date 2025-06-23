@@ -64,7 +64,7 @@ To launch the interactive dashboard:
 shiny::runApp("RApp/")
 ```
 
-#Example Visualization
+Example Visualization
 Population migration and housing price trend in Zhongshan District, Taipei City (2015–2024):
 ![Zhongshan Trend](assets/demo.png)
 [Watch Demonstration Video](https://youtu.be/2qCja5m_uN0)
